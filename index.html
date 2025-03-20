@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title> Hanumaan traders - Lucky Draw</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body style="background: #000; color: #fff; font-family: Arial, sans-serif; padding: 20px;">
+
+<div class="container">
+    <h1 class="text-center my-4" style="color: #FFD700; text-shadow: 2px 2px 10px #FFD700;">Hanumaan Traders - Lucky Draw</h1>
+
+    <!-- Admin Login -->
+    <div id="adminLogin" class="text-center">
+        <h2>Admin Login</h2>
+        <input type="password" id="adminPassword" placeholder="Enter Password" class="form-control my-3">
+        <button class="btn btn-warning" onclick="validateAdmin()">Login</button>
+    </div>
+
+    <!-- Admin Navigation -->
+    <div id="navigation" class="text-center hidden">
+        <button class="btn btn-warning m-2" onclick="showSection('userList')">User List</button>
+        <button class="btn btn-warning m-2" onclick="showSection('addUserSection')">Add User</button>
+        <button class="btn btn-warning m-2" onclick="showSection('rewardList')">Rewards</button>
+        <button class="btn btn-warning m-2" onclick="showSection('winnerList')">Winners</button>
+        <button class="btn btn-warning m-2" onclick="drawWinner()">Draw Winner</button>
+        <button class="btn btn-danger m-2" onclick="resetData()">Reset Data</button>
+        <button class="btn btn-danger m-2" onclick="logoutAdmin()">Logout</button>
+    </div>
+
+    <!-- Sections -->
+    <div id="userList" class="hidden">
+        <h2>Registered Users</h2>
+        <table class="table table-dark">
+            <thead><tr><th>#</th><th>Name</th><th>Coupon Code</th></tr></thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="addUserSection" class="hidden">
+        <h2>Add User</h2>
+        <input type="text" id="userName" placeholder="User Name" class="form-control mb-2">
+        <input type="text" id="userMobile" placeholder="Mobile Number" class="form-control mb-2">
+        <button class="btn btn-warning" onclick="addUser()">Add User</button>
+    </div>
+
+    <div id="rewardList" class="hidden">
+        <h2>Rewards</h2>
+        <table class="table table-dark">
+            <thead><tr><th>#</th><th>Prize</th></tr></thead>
+            <tbody id="rewardTableBody"></tbody>
+        </table>
+        <input type="text" id="rewardPrize" placeholder="Prize Name" class="form-control my-2">
+        <button class="btn btn-warning" onclick="addReward()">Add Reward</button>
+    </div>
+
+    <div id="winnerList" class="hidden">
+        <h2>Winners</h2>
+        <button class="btn btn-success mb-3" onclick="exportWinners()">Export to CSV</button>
+        <table class="table table-dark">
+            <thead><tr><th>#</th><th>Name</th><th>Coupon</th><th>Prize</th></tr></thead>
+            <tbody id="winnersTableBody"></tbody>
+        </table>
+    </div>
+</div>
+    <!-- Countdown Animation -->
+    <div id="countdown" class="hidden">
+        <h1 id="countdownNumber"></h1>
+    </div>
+
+    <!-- Winner Animation -->
+    <div id="winnerPopup" class="hidden">
+        <h1 id="winnerName"></h1>
+    </div>
+</div>
+
+    <!-- Confetti Canvas -->
+<canvas id="confetti-canvas"></canvas>
+    <!-- Winner Sound -->
+<audio id="winnerSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+<script>
+    // Data handling
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    let rewards = JSON.parse(localStorage.getItem('rewards')) || [];
+    let winners = JSON.parse(localStorage.getItem('winners')) || [];
+
+    // Admin auth
+    function validateAdmin() {
+        if (document.getElementById('adminPassword').value === '1234') {
+            sessionStorage.setItem('isAdmin', 'true');
+            location.reload();
+        } else alert('Incorrect Password');
+    }
+
+    function logoutAdmin() {
+        sessionStorage.removeItem('isAdmin');
+        location.reload();
+    }
+
+    function checkAdmin() {
+        if (sessionStorage.getItem('isAdmin')) {
+            document.getElementById('adminLogin').classList.add('hidden');
+            document.getElementById('navigation').classList.remove('hidden');
+            renderData();
+        }
+    }
+    checkAdmin();
+
+   // Confetti and Fireworks
+    const canvas = document.getElementById("confetti-canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const confetti = [];
+
+    function showConfetti() {
+        for (let i = 0; i < 200; i++) {
+            confetti.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                size: Math.random() * 8 + 2,
+                speed: Math.random() * 4 + 2,
+            });
+        }
+        animateConfetti();
+        setTimeout(() => {
+            confetti.length = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }, 5000);
+    }
+
+    function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach((c) => {
+            c.y += c.speed;
+            ctx.fillStyle = c.color;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        requestAnimationFrame(animateConfetti);
+    }
+
+    // Countdown before winner announcement
+    function startCountdown() {
+        let countdown = 5;
+        const countdownElement = document.getElementById("countdown");
+        const countdownNumber = document.getElementById("countdownNumber");
+        const countdownMusic = document.getElementById("countdownMusic");
+
+        countdownElement.classList.remove("hidden");
+        countdownMusic.play();
+
+        const countdownInterval = setInterval(() => {
+            countdownNumber.textContent = countdown;
+            countdown--;
+
+            if (countdown < 0) {
+                clearInterval(countdownInterval);
+                countdownMusic.pause();
+                announceWinner();
+                countdownElement.classList.add("hidden");
+            }
+        }, 1000);
+    }
+
+    // Announce Winner
+    function announceWinner() {
+        const winnerPopup = document.getElementById("winnerPopup");
+        const winnerName = document.getElementById("winnerName");
+        const winnerSound = document.getElementById("winnerSound");
+
+        winnerName.textContent = "🎉 John Doe wins $100! 🎉";
+        winnerPopup.classList.remove("hidden");
+
+        winnerSound.play();
+        showConfetti();
+
+        setTimeout(() => winnerPopup.classList.add("hidden"), 5000);
+        }
+    // Random Coupon Generator
+function generateRandomCoupon() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let coupon = 'MPB-';
+    for (let i = 0; i < 6; i++) {
+        coupon += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return coupon;
+}
+
+// Add user with random coupon
+function addUser() {
+    const name = document.getElementById('userName').value.trim();
+    const mobile = document.getElementById('userMobile').value.trim();
+    if (name && mobile) {
+        const coupon = generateRandomCoupon();
+        users.push({ name, mobile, coupon });
+        localStorage.setItem('users', JSON.stringify(users));
+        renderData();
+        alert(`User Added! Coupon: ${coupon}`);
+    } else {
+        alert("Please fill all fields!");
+    }
+}
+
+
+    // Add reward
+    function addReward() {
+        const prize = document.getElementById('rewardPrize').value.trim();
+        if (prize) {
+            rewards.push({ prize });
+            localStorage.setItem('rewards', JSON.stringify(rewards));
+            renderData();
+            alert("Reward Added!");
+        } else alert("Enter a reward!");
+    }
+
+    
+
+    
+
+
+    // Reset data
+    function resetData() {
+        if (confirm("Reset all data?")) {
+            localStorage.clear();
+            users = [];
+            rewards = [];
+            winners = [];
+            renderData();
+        }
+    }
+
+    // Export Winners to CSV
+    function exportWinners() {
+        let csv = "Name,Coupon,Prize\n";
+        winners.forEach(w => csv += `${w.name},${w.coupon},${w.prize}\n`);
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'winners.csv';
+        link.click();
+    }
+
+    // Render data
+    function renderData() {
+        document.getElementById('userTableBody').innerHTML = users.map((u, i) =>
+            `<tr><td>${i + 1}</td><td>${u.name}</td><td>${u.coupon}</td></tr>`
+        ).join('');
+
+        document.getElementById('rewardTableBody').innerHTML = rewards.map((r, i) =>
+            `<tr><td>${i + 1}</td><td>${r.prize}</td></tr>`
+        ).join('');
+
+        document.getElementById('winnersTableBody').innerHTML = winners.map((w, i) =>
+            `<tr><td>${i + 1}</td><td>${w.name}</td><td>${w.coupon}</td><td>${w.prize}</td></tr>`
+        ).join('');
+    }
+
+    renderData();
+
+    
+</script>
+
+<style>
+    .hidden { display: none; }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+    }
+
+    /* Countdown Animation */
+    #countdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #FFD700;
+        text-shadow: 2px 2px 10px #FFD700;
+        font-size: 5rem;
+        z-index: 1000;
+    }
+
+    /* Winner Animation */
+    #winnerPopup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: #FFD700;
+        text-shadow: 2px 2px 10px #FFD700;
+        padding: 20px;
+        border: 3px solid #FFD700;
+        border-radius: 10px;
+        z-index: 1000;
+        animation: zoomIn 0.5s ease-out;
+    }
+
+    #winnerName {
+        font-size: 2.5rem;
+        text-align: center;
+        animation: bounce 1s infinite;
+    }
+
+    /* Zoom In Animation */
+    @keyframes zoomIn {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    /* Bounce Animation */
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-20px); }
+        60% { transform: translateY(-10px); }
+    }
+</style>
+</body>
+</html>
