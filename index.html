@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title> Hanumaan traders - Lucky Draw</title>
+    <title>Hanumaan Traders - Lucky Draw</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body style="background: #000; color: #fff; font-family: Arial, sans-serif; padding: 20px;">
@@ -64,7 +64,7 @@
             <tbody id="winnersTableBody"></tbody>
         </table>
     </div>
-</div>
+
     <!-- Countdown Animation -->
     <div id="countdown" class="hidden">
         <h1 id="countdownNumber"></h1>
@@ -76,10 +76,14 @@
     </div>
 </div>
 
-    <!-- Confetti Canvas -->
+<!-- Confetti Canvas -->
 <canvas id="confetti-canvas"></canvas>
-    <!-- Winner Sound -->
+
+<!-- Winner Sound -->
 <audio id="winnerSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+<!-- Countdown Music -->
+<audio id="countdownMusic" src="https://www.soundjay.com/misc/sci-fi-whoosh-1.mp3"></audio>
 
 <script>
     // Data handling
@@ -109,7 +113,105 @@
     }
     checkAdmin();
 
-   // Confetti and Fireworks
+    // Show/hide sections
+    function showSection(sectionId) {
+        document.querySelectorAll('div[id$="List"], div[id$="Section"]').forEach(section => {
+            section.classList.add('hidden');
+        });
+        document.getElementById(sectionId).classList.remove('hidden');
+    }
+
+    // Random Coupon Generator
+    function generateRandomCoupon() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let coupon = 'MPB-';
+        for (let i = 0; i < 6; i++) {
+            coupon += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return coupon;
+    }
+
+    // Add user with random coupon
+    function addUser() {
+        const name = document.getElementById('userName').value.trim();
+        const mobile = document.getElementById('userMobile').value.trim();
+        if (name && mobile) {
+            const coupon = generateRandomCoupon();
+            users.push({ name, mobile, coupon });
+            localStorage.setItem('users', JSON.stringify(users));
+            renderData();
+            alert(`User Added! Coupon: ${coupon}`);
+        } else {
+            alert("Please fill all fields!");
+        }
+    }
+
+    // Add reward
+    function addReward() {
+        const prize = document.getElementById('rewardPrize').value.trim();
+        if (prize) {
+            rewards.push({ prize });
+            localStorage.setItem('rewards', JSON.stringify(rewards));
+            renderData();
+            alert("Reward Added!");
+        } else alert("Enter a reward!");
+    }
+
+    // Draw winner
+    function drawWinner() {
+        if (users.length === 0 || rewards.length === 0) {
+            alert("No users or rewards available!");
+            return;
+        }
+
+        startCountdown();
+    }
+
+    // Countdown before winner announcement
+    function startCountdown() {
+        let countdown = 5;
+        const countdownElement = document.getElementById("countdown");
+        const countdownNumber = document.getElementById("countdownNumber");
+        const countdownMusic = document.getElementById("countdownMusic");
+
+        countdownElement.classList.remove("hidden");
+        countdownMusic.play();
+
+        const countdownInterval = setInterval(() => {
+            countdownNumber.textContent = countdown;
+            countdown--;
+
+            if (countdown < 0) {
+                clearInterval(countdownInterval);
+                countdownMusic.pause();
+                announceWinner();
+                countdownElement.classList.add("hidden");
+            }
+        }, 1000);
+    }
+
+    // Announce Winner
+    function announceWinner() {
+        const randomUser = users[Math.floor(Math.random() * users.length)];
+        const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
+
+        winners.push({ name: randomUser.name, coupon: randomUser.coupon, prize: randomReward.prize });
+        localStorage.setItem('winners', JSON.stringify(winners));
+
+        // Display winner
+        document.getElementById('winnerName').textContent = `🎉 ${randomUser.name} wins ${randomReward.prize}! 🎉`;
+        document.getElementById('winnerPopup').classList.remove('hidden');
+        document.getElementById('winnerSound').play();
+        showConfetti();
+
+        // Remove the winner from the users list (optional)
+        users = users.filter(u => u.coupon !== randomUser.coupon);
+        localStorage.setItem('users', JSON.stringify(users));
+
+        renderData();
+    }
+
+    // Confetti Animation
     const canvas = document.getElementById("confetti-canvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
@@ -144,85 +246,6 @@
         });
         requestAnimationFrame(animateConfetti);
     }
-
-    // Countdown before winner announcement
-    function startCountdown() {
-        let countdown = 5;
-        const countdownElement = document.getElementById("countdown");
-        const countdownNumber = document.getElementById("countdownNumber");
-        const countdownMusic = document.getElementById("countdownMusic");
-
-        countdownElement.classList.remove("hidden");
-        countdownMusic.play();
-
-        const countdownInterval = setInterval(() => {
-            countdownNumber.textContent = countdown;
-            countdown--;
-
-            if (countdown < 0) {
-                clearInterval(countdownInterval);
-                countdownMusic.pause();
-                announceWinner();
-                countdownElement.classList.add("hidden");
-            }
-        }, 1000);
-    }
-
-    // Announce Winner
-    function announceWinner() {
-        const winnerPopup = document.getElementById("winnerPopup");
-        const winnerName = document.getElementById("winnerName");
-        const winnerSound = document.getElementById("winnerSound");
-
-        winnerName.textContent = "🎉 John Doe wins $100! 🎉";
-        winnerPopup.classList.remove("hidden");
-
-        winnerSound.play();
-        showConfetti();
-
-        setTimeout(() => winnerPopup.classList.add("hidden"), 5000);
-        }
-    // Random Coupon Generator
-function generateRandomCoupon() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let coupon = 'MPB-';
-    for (let i = 0; i < 6; i++) {
-        coupon += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return coupon;
-}
-
-// Add user with random coupon
-function addUser() {
-    const name = document.getElementById('userName').value.trim();
-    const mobile = document.getElementById('userMobile').value.trim();
-    if (name && mobile) {
-        const coupon = generateRandomCoupon();
-        users.push({ name, mobile, coupon });
-        localStorage.setItem('users', JSON.stringify(users));
-        renderData();
-        alert(`User Added! Coupon: ${coupon}`);
-    } else {
-        alert("Please fill all fields!");
-    }
-}
-
-
-    // Add reward
-    function addReward() {
-        const prize = document.getElementById('rewardPrize').value.trim();
-        if (prize) {
-            rewards.push({ prize });
-            localStorage.setItem('rewards', JSON.stringify(rewards));
-            renderData();
-            alert("Reward Added!");
-        } else alert("Enter a reward!");
-    }
-
-    
-
-    
-
 
     // Reset data
     function resetData() {
@@ -263,8 +286,6 @@ function addUser() {
     }
 
     renderData();
-
-    
 </script>
 
 <style>
