@@ -292,6 +292,60 @@
         requestAnimationFrame(animateConfetti);
     }
 
+    // Confetti Animation with Animated Cut
+const canvas = document.getElementById("confetti-canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const confetti = [];
+
+function showConfetti() {
+    for (let i = 0; i < 200; i++) {
+        confetti.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+            size: Math.random() * 8 + 2,
+            speed: Math.random() * 4 + 2,
+        });
+    }
+    animateConfetti();
+    setTimeout(() => {
+        confetti.length = 0; // Clear confetti after animation
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, 8000); // Stop animation after 8 seconds
+}
+
+function animateConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Animate confetti falling
+    confetti.forEach((c) => {
+        c.y += c.speed; // Move confetti downward
+        c.x += Math.sin(c.y * 0.05) * 2; // Add a slight horizontal sway for realism
+
+        // If confetti is off-screen, reset it to the top
+        if (c.y > canvas.height) {
+            c.y = -c.size; // Reset to the top
+            c.x = Math.random() * canvas.width; // Randomize horizontal position
+        }
+
+        ctx.fillStyle = c.color;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Add a "cut" effect after a delay
+    setTimeout(() => {
+        confetti.forEach((c) => {
+            c.y += 20; // Make confetti fall faster
+            c.x += (Math.random() - 0.5) * 10; // Add random horizontal movement
+        });
+    }, 3000); // Start the cut effect after 3 seconds
+
+    requestAnimationFrame(animateConfetti);
+}
     // Reset data
     function resetData() {
         if (confirm("Reset all data?")) {
