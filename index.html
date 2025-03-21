@@ -6,6 +6,105 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Hanumaan Traders - Lucky Draw</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .hidden { display: none; }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        /* Countdown Animation */
+        #countdown {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #FFD700;
+            text-shadow: 2px 2px 10px #FFD700;
+            font-size: 5rem;
+            z-index: 1000;
+        }
+
+        /* Winner Animation */
+        #winnerPopup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #FFD700;
+            text-shadow: 2px 2px 10px #FFD700;
+            padding: 20px;
+            border: 3px solid #FFD700;
+            border-radius: 10px;
+            z-index: 1000;
+            animation: zoomIn 0.5s ease-out;
+        }
+
+        #winnerName {
+            font-size: 2.5rem;
+            text-align: center;
+            animation: bounce 1s infinite;
+        }
+
+        /* Pop-up Image Modal */
+        #imagePopup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #000;
+        }
+
+        .close-btn:hover {
+            color: #ff0000;
+        }
+
+        .img-fluid {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        /* Zoom In Animation */
+        @keyframes zoomIn {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* Bounce Animation */
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+    </style>
 </head>
 <body style="background: #000; color: #fff; font-family: Arial, sans-serif; padding: 20px;">
 
@@ -73,6 +172,14 @@
     <!-- Winner Animation -->
     <div id="winnerPopup" class="hidden">
         <h1 id="winnerName"></h1>
+    </div>
+
+    <!-- Pop-up Image Modal -->
+    <div id="imagePopup" class="hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeImagePopup()">&times;</span>
+            <img src="https://via.placeholder.com/400" alt="Winner Image" class="img-fluid">
+        </div>
     </div>
 </div>
 
@@ -204,11 +311,24 @@
         document.getElementById('winnerSound').play();
         showConfetti();
 
+        // Show the pop-up image
+        showImagePopup();
+
         // Remove the winner from the users list (optional)
         users = users.filter(u => u.coupon !== randomUser.coupon);
         localStorage.setItem('users', JSON.stringify(users));
 
         renderData();
+    }
+
+    // Show the pop-up image modal
+    function showImagePopup() {
+        document.getElementById('imagePopup').classList.remove('hidden');
+    }
+
+    // Close the pop-up image modal
+    function closeImagePopup() {
+        document.getElementById('imagePopup').classList.add('hidden');
     }
 
     // Confetti Animation
@@ -287,64 +407,5 @@
 
     renderData();
 </script>
-
-<style>
-    .hidden { display: none; }
-
-    /* Confetti Canvas */
-    #confetti-canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-    }
-
-    /* Countdown Animation */
-    #countdown {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #FFD700;
-        text-shadow: 2px 2px 10px #FFD700;
-        font-size: 5rem;
-        z-index: 1000;
-    }
-
-    /* Winner Animation */
-    #winnerPopup {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: #FFD700;
-        text-shadow: 2px 2px 10px #FFD700;
-        padding: 20px;
-        border: 3px solid #FFD700;
-        border-radius: 10px;
-        z-index: 1000;
-        animation: zoomIn 0.5s ease-out;
-    }
-
-    #winnerName {
-        font-size: 2.5rem;
-        text-align: center;
-        animation: bounce 1s infinite;
-    }
-
-    /* Zoom In Animation */
-    @keyframes zoomIn {
-        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    }
-
-    /* Bounce Animation */
-    @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-        40% { transform: translateY(-20px); }
-        60% { transform: translateY(-10px); }
-    }
-</style>
 </body>
 </html>
