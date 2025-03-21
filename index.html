@@ -17,18 +17,6 @@
             pointer-events: none;
         }
 
-        /* Countdown Animation */
-        #countdown {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #FFD700;
-            text-shadow: 2px 2px 10px #FFD700;
-            font-size: 5rem;
-            z-index: 1000;
-        }
-
         /* Winner Animation */
         #winnerPopup {
             position: fixed;
@@ -36,10 +24,10 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 255, 0.8); /* Blue background */
-            color: #FFD700;
-            text-shadow: 2px 2px 10px #FFD700;
+            color: #fff;
+            text-shadow: 2px 2px 10px #fff;
             padding: 20px;
-            border: 3px solid #FFD700;
+            border: 3px solid #fff;
             border-radius: 10px;
             z-index: 1000;
             animation: zoomIn 0.5s ease-out;
@@ -49,47 +37,6 @@
             font-size: 2.5rem;
             text-align: center;
             animation: bounce 1s infinite;
-        }
-
-        /* Pop-up Image Modal */
-        #imagePopup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            position: relative;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 24px;
-            cursor: pointer;
-            color: #000;
-        }
-
-        .close-btn:hover {
-            color: #ff0000;
-        }
-
-        .img-fluid {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
         }
 
         /* Zoom In Animation */
@@ -132,8 +79,6 @@
     <!-- Sections -->
     <div id="userList" class="hidden">
         <h2>Registered Users</h2>
-        <button class="btn btn-success mb-3" onclick="document.getElementById('fileInput').click()">Upload Excel</button>
-        <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls" onchange="handleFileUpload(event)">
         <table class="table table-dark">
             <thead><tr><th>#</th><th>Name</th><th>Coupon Code</th></tr></thead>
             <tbody id="userTableBody"></tbody>
@@ -145,6 +90,8 @@
         <input type="text" id="userName" placeholder="User Name" class="form-control mb-2">
         <input type="text" id="userMobile" placeholder="Mobile Number" class="form-control mb-2">
         <button class="btn btn-warning" onclick="addUser()">Add User</button>
+        <input type="file" id="excelFile" class="form-control mt-3" accept=".xlsx, .xls">
+        <button class="btn btn-warning mt-2" onclick="uploadExcel()">Upload Excel</button>
     </div>
 
     <div id="rewardList" class="hidden">
@@ -166,22 +113,9 @@
         </table>
     </div>
 
-    <!-- Countdown Animation -->
-    <div id="countdown" class="hidden">
-        <h1 id="countdownNumber"></h1>
-    </div>
-
     <!-- Winner Animation -->
     <div id="winnerPopup" class="hidden">
         <h1 id="winnerName"></h1>
-    </div>
-
-    <!-- Pop-up Image Modal -->
-    <div id="imagePopup" class="hidden">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeImagePopup()">&times;</span>
-            <img src="https://via.placeholder.com/400" alt="Winner Image" class="img-fluid">
-        </div>
     </div>
 </div>
 
@@ -191,10 +125,6 @@
 <!-- Winner Sound -->
 <audio id="winnerSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
 
-<!-- Countdown Music -->
-<audio id="countdownMusic" src="https://www.soundjay.com/misc/sci-fi-whoosh-1.mp3"></audio>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 <script>
     // Data handling
     let users = JSON.parse(localStorage.getItem('users')) || [];
@@ -231,10 +161,10 @@
         document.getElementById(sectionId).classList.remove('hidden');
     }
 
-    // Random Coupon Generator (MPB replaced with SHT)
+    // Random Coupon Generator (Replace MPB with SHT)
     function generateRandomCoupon() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let coupon = 'SHT-'; // MPB replaced with SHT
+        let coupon = 'SHT-'; // Changed from MPB to SHT
         for (let i = 0; i < 6; i++) {
             coupon += chars.charAt(Math.floor(Math.random() * chars.length));
         }
@@ -256,6 +186,38 @@
         }
     }
 
+    // Upload Excel File
+    function uploadExcel() {
+        const file = document.getElementById('excelFile').files[0];
+        if (!file) {
+            alert("Please select a file!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            json.forEach(row => {
+                const name = row['Name'];
+                const mobile = row['Mobile'];
+                if (name && mobile) {
+                    const coupon = generateRandomCoupon();
+                    users.push({ name, mobile, coupon });
+                }
+            });
+
+            localStorage.setItem('users', JSON.stringify(users));
+            renderData();
+            alert("Users added from Excel!");
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
     // Add reward
     function addReward() {
         const prize = document.getElementById('rewardPrize').value.trim();
@@ -267,50 +229,19 @@
         } else alert("Enter a reward!");
     }
 
-    // Draw winner (from first prize to last prize)
+    // Draw winner in order of prizes
     function drawWinner() {
         if (users.length === 0 || rewards.length === 0) {
             alert("No users or rewards available!");
             return;
         }
 
-        if (rewards.length > 0) {
-            const reward = rewards.shift(); // Pick the first prize
-            startCountdown(reward);
-        } else {
-            alert("No more rewards left!");
-        }
-    }
-
-    // Countdown before winner announcement
-    function startCountdown(reward) {
-        let countdown = 5;
-        const countdownElement = document.getElementById("countdown");
-        const countdownNumber = document.getElementById("countdownNumber");
-        const countdownMusic = document.getElementById("countdownMusic");
-
-        countdownElement.classList.remove("hidden");
-        countdownMusic.play();
-
-        const countdownInterval = setInterval(() => {
-            countdownNumber.textContent = countdown;
-            countdown--;
-
-            if (countdown < 0) {
-                clearInterval(countdownInterval);
-                countdownMusic.pause();
-                announceWinner(reward);
-                countdownElement.classList.add("hidden");
-            }
-        }, 1000);
-    }
-
-    // Announce Winner
-    function announceWinner(reward) {
+        const reward = rewards.shift(); // Get the first prize
         const randomUser = users[Math.floor(Math.random() * users.length)];
 
         winners.push({ name: randomUser.name, coupon: randomUser.coupon, prize: reward.prize });
         localStorage.setItem('winners', JSON.stringify(winners));
+        localStorage.setItem('rewards', JSON.stringify(rewards));
 
         // Display winner
         document.getElementById('winnerName').textContent = `🎉 ${randomUser.name} wins ${reward.prize}! 🎉`;
@@ -318,24 +249,11 @@
         document.getElementById('winnerSound').play();
         showConfetti();
 
-        // Show the pop-up image
-        showImagePopup();
-
         // Remove the winner from the users list
         users = users.filter(u => u.coupon !== randomUser.coupon);
         localStorage.setItem('users', JSON.stringify(users));
 
         renderData();
-    }
-
-    // Show the pop-up image modal
-    function showImagePopup() {
-        document.getElementById('imagePopup').classList.remove('hidden');
-    }
-
-    // Close the pop-up image modal
-    function closeImagePopup() {
-        document.getElementById('imagePopup').classList.add('hidden');
     }
 
     // Confetti Animation
@@ -397,33 +315,6 @@
         link.click();
     }
 
-    // Handle Excel file upload
-    function handleFileUpload(event) {
-        const file = event.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(sheet);
-
-            json.forEach(row => {
-                const name = row['Name'];
-                const mobile = row['Mobile'];
-                if (name && mobile) {
-                    const coupon = generateRandomCoupon();
-                    users.push({ name, mobile, coupon });
-                }
-            });
-
-            localStorage.setItem('users', JSON.stringify(users));
-            renderData();
-            alert("Users uploaded successfully!");
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
     // Render data
     function renderData() {
         document.getElementById('userTableBody').innerHTML = users.map((u, i) =>
@@ -441,5 +332,7 @@
 
     renderData();
 </script>
+<!-- Include XLSX library for Excel file processing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </body>
 </html>
