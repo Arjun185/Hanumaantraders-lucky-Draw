@@ -35,7 +35,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 255, 0.8); /* Blue background */
             color: #FFD700;
             text-shadow: 2px 2px 10px #FFD700;
             padding: 20px;
@@ -132,6 +132,8 @@
     <!-- Sections -->
     <div id="userList" class="hidden">
         <h2>Registered Users</h2>
+        <button class="btn btn-success mb-3" onclick="document.getElementById('fileInput').click()">Upload Excel</button>
+        <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls" onchange="handleFileUpload(event)">
         <table class="table table-dark">
             <thead><tr><th>#</th><th>Name</th><th>Coupon Code</th></tr></thead>
             <tbody id="userTableBody"></tbody>
@@ -192,6 +194,7 @@
 <!-- Countdown Music -->
 <audio id="countdownMusic" src="https://www.soundjay.com/misc/sci-fi-whoosh-1.mp3"></audio>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 <script>
     // Data handling
     let users = JSON.parse(localStorage.getItem('users')) || [];
@@ -228,10 +231,10 @@
         document.getElementById(sectionId).classList.remove('hidden');
     }
 
-    // Random Coupon Generator
+    // Random Coupon Generator (MPB replaced with SHT)
     function generateRandomCoupon() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let coupon = 'MPB-';
+        let coupon = 'SHT-'; // MPB replaced with SHT
         for (let i = 0; i < 6; i++) {
             coupon += chars.charAt(Math.floor(Math.random() * chars.length));
         }
@@ -264,18 +267,23 @@
         } else alert("Enter a reward!");
     }
 
-    // Draw winner
+    // Draw winner (from first prize to last prize)
     function drawWinner() {
         if (users.length === 0 || rewards.length === 0) {
             alert("No users or rewards available!");
             return;
         }
 
-        startCountdown();
+        if (rewards.length > 0) {
+            const reward = rewards.shift(); // Pick the first prize
+            startCountdown(reward);
+        } else {
+            alert("No more rewards left!");
+        }
     }
 
     // Countdown before winner announcement
-    function startCountdown() {
+    function startCountdown(reward) {
         let countdown = 5;
         const countdownElement = document.getElementById("countdown");
         const countdownNumber = document.getElementById("countdownNumber");
@@ -291,22 +299,21 @@
             if (countdown < 0) {
                 clearInterval(countdownInterval);
                 countdownMusic.pause();
-                announceWinner();
+                announceWinner(reward);
                 countdownElement.classList.add("hidden");
             }
         }, 1000);
     }
 
     // Announce Winner
-    function announceWinner() {
+    function announceWinner(reward) {
         const randomUser = users[Math.floor(Math.random() * users.length)];
-        const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
 
-        winners.push({ name: randomUser.name, coupon: randomUser.coupon, prize: randomReward.prize });
+        winners.push({ name: randomUser.name, coupon: randomUser.coupon, prize: reward.prize });
         localStorage.setItem('winners', JSON.stringify(winners));
 
         // Display winner
-        document.getElementById('winnerName').textContent = `🎉 ${randomUser.name} wins ${randomReward.prize}! 🎉`;
+        document.getElementById('winnerName').textContent = `🎉 ${randomUser.name} wins ${reward.prize}! 🎉`;
         document.getElementById('winnerPopup').classList.remove('hidden');
         document.getElementById('winnerSound').play();
         showConfetti();
@@ -314,7 +321,7 @@
         // Show the pop-up image
         showImagePopup();
 
-        // Remove the winner from the users list (optional)
+        // Remove the winner from the users list
         users = users.filter(u => u.coupon !== randomUser.coupon);
         localStorage.setItem('users', JSON.stringify(users));
 
@@ -388,6 +395,33 @@
         link.href = URL.createObjectURL(blob);
         link.download = 'winners.csv';
         link.click();
+    }
+
+    // Handle Excel file upload
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            json.forEach(row => {
+                const name = row['Name'];
+                const mobile = row['Mobile'];
+                if (name && mobile) {
+                    const coupon = generateRandomCoupon();
+                    users.push({ name, mobile, coupon });
+                }
+            });
+
+            localStorage.setItem('users', JSON.stringify(users));
+            renderData();
+            alert("Users uploaded successfully!");
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     // Render data
